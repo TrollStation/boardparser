@@ -4,7 +4,7 @@
 
 import logging
 import requests
-from time import time  # , gmtime, strftime
+from time import time
 from misc import stopwatch_countdown, line_print, init_config, init_logger, init_dbclient
 from sosach import Board
 
@@ -16,7 +16,8 @@ Config = init_config('config.conf')
 init_logger(Config)
 
 DBClient = init_dbclient(Config)
-DBLink = DBClient['2ch_parser_b']  # .format(config['database_prefix'])]
+db_prefix = Config.get('global', 'database_prefix', fallback='boardparser')
+DBLink = DBClient[db_prefix + '_b']
 
 
 def main():

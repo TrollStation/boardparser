@@ -121,7 +121,46 @@ class Board:
 
     def separate_dead_threads(self, db_link):
         start_separate_time = time()
-        pass
+        separated_threads_count = 0
+        separated_posts_count = 0
+        logging.info('Separating dead threads in /{0}/'.format(self.name))
+        th_link = db_link['threads']
+        p_link = db_link['posts']
+        th_d_link = db_link['dead_threads']
+        p_d_link = db_link['dead_posts']
+        db_threads = th_link.find()
+        live_threads_numbers = []
+        for thread in self.threads:
+            live_threads_numbers.append(thread.number)
+        for db_thread in db_threads:
+            if db_thread['number'] not in live_threads_numbers:
+                dead_thread_doc = {'board_name': db_thread['board_name'],
+                                   'number': db_thread['number'],
+                                   'subject': db_thread['subject'],
+                                   'unique_posters': db_thread['unique_posters'],
+                                   'views': db_thread['views'],
+                                   'timestamp': db_thread['timestamp'],
+                                   'processed': db_thread['processed']}
+                th_d_link.insert_one(dead_thread_doc)
+                th_link.delete_one({'number': db_thread['number']})
+                separated_threads_count += 1
+                db_posts = p_link.find({'thread': db_thread['number']})
+                for db_post in db_posts:
+                    post_doc = {'thread': db_post['thread'],
+                                'number': db_post['number'],
+                                'index': db_post['index'],
+                                'timestamp': db_post['timestamp'],
+                                'op': db_post['op'],
+                                'message': db_post['message']}
+                    p_d_link.insert_one(post_doc)
+                    p_link.delete_one({'number': db_post['number']})
+                    separated_posts_count += 1
+                    logging.debug('Post #{0} is dead and separated'.format(db_post['number']))
+                logging.debug('Thread #{0} is dead and separated'.format(db_thread['number']))
+        logging.info('Separated {0} dead threads with {1} in {2} seconds'.format(separated_threads_count,
+                                                                                 separated_posts_count,
+                                                                                 int(time() - start_separate_time)))
+        logging.info('Total stored {0} dead threads and {1} dead posts'.format(th_d_link.count(), p_d_link.count()))
 
 
 class Thread:
@@ -157,10 +196,13 @@ class Thread:
 
 class Post:
     def __init__(self, post):
-        self.number = post['num']
-        self.index = post['number']
-        self.thread_number = post['parent']
-        self.timestamp = post['timestamp']
+        self.number = int(post['num'])
+        self.index = int(post['number'])
+        if int(post['parent']):
+            self.thread_number = int(post['parent'])
+        else:
+            self.thread_number = int(post['num'])
+        self.timestamp = int(post['timestamp'])
         self.message = post['comment']
         self.op = post['op']
         self.files = []
