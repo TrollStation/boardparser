@@ -4,6 +4,25 @@
 import logging
 from time import time, sleep
 from misc import line_print
+from html.parser import HTMLParser
+
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.strict = False
+        self.convert_charrefs = True
+        self.result = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'br':
+            self.result.append(' ')
+
+    def handle_data(self, d):
+        self.result.append(d)
+
+    def get_data(self):
+        return ''.join(self.result)
 
 Proxies = {}
 
@@ -100,7 +119,8 @@ class Board:
                             'index': post.index,
                             'timestamp': post.timestamp,
                             'op': post.op,
-                            'message': post.message}
+                            'message': post.message,
+                            'files': post.files}
                 if not p_link.find_one({'number': post.number}):
                     post_out_string = '[{0}/{1}] Saving post #{2}'.format(thread.posts.index(post) + 1,
                                                                           len(thread.posts),
@@ -135,25 +155,14 @@ class Board:
             live_threads_numbers.append(thread.number)
         for db_thread in db_threads:
             if db_thread['number'] not in live_threads_numbers:
-                dead_thread_doc = {'board_name': db_thread['board_name'],
-                                   'number': db_thread['number'],
-                                   'subject': db_thread['subject'],
-                                   'unique_posters': db_thread['unique_posters'],
-                                   'views': db_thread['views'],
-                                   'timestamp': db_thread['timestamp'],
-                                   'processed': db_thread['processed']}
-                th_d_link.insert_one(dead_thread_doc)
+                del(db_thread['_id'])
+                th_d_link.insert_one(db_thread)
                 th_link.delete_one({'number': db_thread['number']})
                 separated_threads_count += 1
                 db_posts = p_link.find({'thread': db_thread['number']})
                 for db_post in db_posts:
-                    post_doc = {'thread': db_post['thread'],
-                                'number': db_post['number'],
-                                'index': db_post['index'],
-                                'timestamp': db_post['timestamp'],
-                                'op': db_post['op'],
-                                'message': db_post['message']}
-                    p_d_link.insert_one(post_doc)
+                    del(db_post['_id'])
+                    p_d_link.insert_one(db_post)
                     p_link.delete_one({'number': db_post['number']})
                     separated_posts_count += 1
                     logging.debug('Post #{0} is dead and separated'.format(db_post['number']))
@@ -206,14 +215,11 @@ class Post:
             self.thread_number = int(post['num'])
         self.timestamp = int(post['timestamp'])
         self.message = post['comment']
+        self.repair_message()
         self.op = post['op']
-        self.files = []
-        for parsed_attachment in post['files']:
-            f = Attachment(parsed_attachment)
-            self.files.append(f)
+        self.files = post['files']
 
-
-class Attachment:
-    def __init__(self, attachment):
-        self.name = attachment['name']
-        self.path = attachment['path']
+    def repair_message(self):
+        s = MLStripper()
+        s.feed(self.message)
+        self.message = s.get_data()
