@@ -60,6 +60,8 @@ class Board:
         new_posts = 0
         th_link = db_link['threads']
         p_link = db_link['posts']
+        th_link.create_index('number')
+        p_link.create_index('number')
         for thread in self.threads:
             thread_doc = {'board_name': thread.board_name,
                           'number': thread.number,
