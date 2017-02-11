@@ -35,24 +35,26 @@ def init_logger(config):
     logging.addLevelName(logging.WARNING, '\033[1;31m{0}\033[1;0m'.format(logging.getLevelName(logging.WARNING)))
     logging.addLevelName(logging.ERROR, '\033[1;41m{0}\033[1;0m'.format(logging.getLevelName(logging.ERROR)))
     logger = logging.getLogger()
-    if config['global']['log_file_level'] == 'debug':
+    log_file_level = config.get('global', 'log_file_level', fallback='debug')
+    if log_file_level == 'debug':
         logger.setLevel(logging.DEBUG)
-    elif config['global']['log_file_level'] == 'info':
+    elif log_file_level == 'info':
         logger.setLevel(logging.INFO)
-    elif config['global']['log_file_level'] == 'warning':
+    elif log_file_level == 'warning':
         logger.setLevel(logging.INFO)
-    elif config['global']['log_file_level'] == 'error':
+    elif log_file_level == 'error':
         logger.setLevel(logging.INFO)
     else:
         logging.error('Config reading failed : log_file_level option is invalid')
     log_console_handler = logging.StreamHandler()
-    if config['global']['log_stdout_level'] == 'debug':
+    log_stdout_level = config.get('global', 'log_stdout_level', fallback='info')
+    if log_stdout_level == 'debug':
         log_console_handler.setLevel(logging.DEBUG)
-    elif config['global']['log_stdout_level'] == 'info':
+    elif log_stdout_level == 'info':
         log_console_handler.setLevel(logging.INFO)
-    elif config['global']['log_stdout_level'] == 'warning':
+    elif log_stdout_level == 'warning':
         log_console_handler.setLevel(logging.INFO)
-    elif config['global']['log_stdout_level'] == 'error':
+    elif log_stdout_level == 'error':
         log_console_handler.setLevel(logging.INFO)
     else:
         logging.error('Config reading failed : log_stdout_level option is invalid')

@@ -5,7 +5,6 @@ import logging
 from time import time, sleep
 from misc import line_print
 
-
 Proxies = {}
 
 
@@ -157,9 +156,10 @@ class Board:
                     separated_posts_count += 1
                     logging.debug('Post #{0} is dead and separated'.format(db_post['number']))
                 logging.debug('Thread #{0} is dead and separated'.format(db_thread['number']))
-        logging.info('Separated {0} dead threads with {1} in {2} seconds'.format(separated_threads_count,
-                                                                                 separated_posts_count,
-                                                                                 int(time() - start_separate_time)))
+        logging.info('Separated {0} dead threads with {1} posts in {2} seconds'
+                     .format(separated_threads_count,
+                             separated_posts_count,
+                             int(time() - start_separate_time)))
         logging.info('Total stored {0} dead threads and {1} dead posts'.format(th_d_link.count(), p_d_link.count()))
 
 
@@ -188,7 +188,7 @@ class Thread:
                     failed_json_dump.close()
                 return
             self.posts_json = parsed_response['threads'][0]['posts']
-            self.unique_posters = parsed_response['unique_posters']
+            self.unique_posters = int(parsed_response['unique_posters'])
         else:
             logging.error('Requesting #{0} thread failed. HTTP code is {1}'.format(self.number,
                                                                                    response.status_code))
