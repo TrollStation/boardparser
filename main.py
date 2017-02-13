@@ -4,7 +4,7 @@
 
 import logging
 import requests
-from time import time
+from time import time, strftime, gmtime
 from misc import stopwatch_countdown, line_print, init_config, init_logger, init_dbclient
 from sosach import Board
 
@@ -20,6 +20,19 @@ db_prefix = Config.get('global', 'database_prefix', fallback='boardparser')
 DBLink = DBClient[db_prefix + '_b']
 
 
+def analyze_word_list_live(board):
+    WLink = DBLink['raw_words']
+    words = []
+    logging.info('Gathering word list')
+    for thread in board.threads:
+        for post in thread.posts:
+            for word in post.message.split(' '):
+                words.append(word)
+    logging.info('Read {0} words'.format(len(words)))
+    with open('log/word_list_{0}.txt'.format(strftime('%d.%m.%y_%H:%M', gmtime())), 'w') as word_list_file:
+        word_list_file.write('\n'.join(words))
+
+
 def main():
     wait_timeout = Config.getint('global', 'wait_timeout', fallback=600)
     wait_timeout_fallback = Config.getint('global', 'wait_timeout_fallback', fallback=60)
@@ -33,6 +46,7 @@ def main():
         board.save_live_threads(DBLink)
         board.separate_dead_threads(DBLink)
         total_time = int(time() - start_time)
+        analyze_word_list_live(board)
         logging.info('Total work time is {0} seconds'.format(total_time))
         logging.info('=== STOP ===')
         if total_time < wait_timeout:

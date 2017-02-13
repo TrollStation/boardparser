@@ -28,7 +28,8 @@ Proxies = {}
 
 
 class Board:
-    api_request_timeout = 0
+    api_request_timeout = 5
+    api_wait_timeout = 0
 
     def __init__(self, name, requests_session):
         self.name = name
@@ -41,7 +42,7 @@ class Board:
     def update_live_threads(self):
         start_fetch_time = time()
         logging.info('Requesting /{0}/ board threads'.format(self.name))
-        response = self.requests_session.get(self.threads_api_url, proxies=Proxies)
+        response = self.requests_session.get(self.threads_api_url, proxies=Proxies, timeout=self.api_request_timeout)
         if response.status_code != 200:
             logging.error('Requesting #{0} board threads failed. HTTP status code is {1}'.format(self.name,
                                                                                                  response.status_code))
@@ -52,6 +53,7 @@ class Board:
                                                                      int(time() - start_fetch_time)))
         except ValueError:
             logging.error('Parsing JSON for threads on {0} failed'.format(self.name))
+            return False
 
     def parse_live_threads(self):
         for parsed_thread in self.threads_json:
@@ -70,7 +72,7 @@ class Board:
                 self.threads.append(th)
             except TypeError:
                 logging.warning('Parsing thread {0} failed'.format(th.number))
-            sleep(self.api_request_timeout)
+            sleep(self.api_wait_timeout)
 
     def save_live_threads(self, db_link):
         start_write_time = time()
