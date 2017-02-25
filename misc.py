@@ -6,6 +6,7 @@ from configparser import ConfigParser
 from time import time, clock, sleep, strftime, gmtime
 from shutil import get_terminal_size
 from pymongo import MongoClient
+from html.parser import HTMLParser
 
 
 def init_config(file):
@@ -29,8 +30,8 @@ def init_config(file):
 
 
 def init_logger(config):
-    log_filename = '{0}_{1}.log'.format(config.get('global', 'log_file_prefix', fallback='boardparser'),
-                                        strftime('%d.%m.%y_%H:%M', gmtime()))
+    log_filename = 'log/{0}_{1}.log'.format(config.get('global', 'log_file_prefix', fallback='boardparser'),
+                                            strftime('%d.%m.%y_%H:%M', gmtime()))
     logging.basicConfig(format='%(asctime)s [%(levelname)s] : %(message)s', filename=log_filename)
     logging.addLevelName(logging.WARNING, '\033[1;31m{0}\033[1;0m'.format(logging.getLevelName(logging.WARNING)))
     logging.addLevelName(logging.ERROR, '\033[1;41m{0}\033[1;0m'.format(logging.getLevelName(logging.ERROR)))
@@ -83,6 +84,25 @@ def stopwatch_countdown(seconds, comment=''):
     estimated = 1
     while estimated:
         estimated = seconds - int(time() - start)
-        s = '[{0}] {1} '.format(estimated, comment)
+        s = ' [{0}] {1} '.format(estimated, comment)
         line_print(s)
         sleep(1)
+
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.strict = False
+        self.convert_charrefs = True
+        self.result = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'br':
+            self.result.append(' ')
+
+    def handle_data(self, d):
+        self.result.append(d)
+
+    def get_data(self):
+        return ''.join(self.result)
+
